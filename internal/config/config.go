@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Env        string `toml:"env"`
 	HTTPServer `toml:"http_server"`
+	BaseUrl    string `toml:"base_url"`
 }
 
 type HTTPServer struct {

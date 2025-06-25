@@ -2,14 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
 	_ "github.com/go-chi/chi/v5/middleware"
+	"github.com/markvoronov/shortener/internal/api"
 	"github.com/markvoronov/shortener/internal/config"
-	"github.com/markvoronov/shortener/internal/handler/redirect"
-	"github.com/markvoronov/shortener/internal/handler/save"
 	"github.com/markvoronov/shortener/internal/logger/slogpretty"
 	"log/slog"
-	"net/http"
 	"os"
 )
 
@@ -29,23 +26,8 @@ func main() {
 	log.Info("Конфигурация сервера", slog.Any("config", cfg))
 	log.Debug("debug massages are enable")
 
-	router := chi.NewRouter()
-
-	router.Post("/", save.RootHandle)
-	router.Get("/{id}", redirect.New(log, nil))
-
-	log.Info("starting server", slog.String("address", cfg.Address))
-	srv := &http.Server{
-		Addr:         cfg.Address,
-		Handler:      router,
-		ReadTimeout:  cfg.HTTPServer.Timeout,
-		WriteTimeout: cfg.HTTPServer.Timeout,
-		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
-	}
-
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server")
-	}
+	server := api.New(cfg, log)
+	server.Start()
 
 	log.Error("server stopeed")
 }
