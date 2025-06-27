@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/markvoronov/shortener/internal/config"
 	mwLogger "github.com/markvoronov/shortener/internal/middleware/logger"
+	"github.com/markvoronov/shortener/internal/repository"
+
 	//"github.com/markvoronov/shortener/internal/handler/redirect"
 	//	"github.com/markvoronov/shortener/internal/handler/save"
 	"log/slog"
@@ -14,17 +16,18 @@ import (
 
 type API struct {
 	// Unexported field
-	config *config.Config
-	logger *slog.Logger
-	router *chi.Mux
-	//storage *storage.Storage
+	config  *config.Config
+	logger  *slog.Logger
+	router  *chi.Mux
+	storage repository.Storage
 }
 
-func New(config *config.Config, logger *slog.Logger) *API {
+func New(config *config.Config, logger *slog.Logger, storage repository.Storage) *API {
 	return &API{
-		config: config,
-		logger: logger,
-		router: chi.NewRouter(),
+		config:  config,
+		logger:  logger,
+		router:  chi.NewRouter(),
+		storage: storage,
 	}
 }
 

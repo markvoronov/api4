@@ -1,7 +1,10 @@
 package api
 
 import (
+	"errors"
 	"fmt"
+	"github.com/markvoronov/shortener/internal/api/random"
+	"github.com/markvoronov/shortener/internal/repository"
 	"io"
 	"log/slog"
 	"mime"
@@ -44,15 +47,25 @@ func (api *API) RootHandle(w http.ResponseWriter, r *http.Request) {
 		log.Debug("Body empty")
 		return
 	}
-	//fmt.Println(bodyStr)
+
+	alias := random.NewRandomString(api.config.AliasLength, nil)
+	err = api.storage.Add(bodyStr, alias)
+	if errors.Is(err, repository.ErrURLExists) {
+		log.Info("url already exists", slog.String("url", bodyStr))
+		w.Write([]byte("url already exists"))
+		//render.JSON(w, r, resp.Error("url already exists"))
+		return
+	}
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Location", bodyStr)
 	w.WriteHeader(http.StatusCreated)
 	// Пишем тело и проверяем ошибку
-	if _, err := w.Write([]byte("http://localhost:8080/EwHXdJfB")); err != nil {
+	ref := api.config.Address + "/" + alias
+	if _, err := w.Write([]byte(ref)); err != nil {
 		//log.Printf("Failed to write response: %v", err)
 		return
 	}
+	log.Info("Записан адрес", slog.String("alias", alias), slog.String("ref", ref))
 
 }

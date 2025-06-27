@@ -6,6 +6,8 @@ import (
 	"github.com/markvoronov/shortener/internal/api"
 	"github.com/markvoronov/shortener/internal/config"
 	"github.com/markvoronov/shortener/internal/logger/slogpretty"
+	"github.com/markvoronov/shortener/internal/repository"
+	"github.com/markvoronov/shortener/internal/repository/memory"
 	"log/slog"
 	"os"
 )
@@ -26,7 +28,18 @@ func main() {
 	log.Info("Конфигурация сервера", slog.Any("config", cfg))
 	log.Debug("debug massages are enable")
 
-	server := api.New(cfg, log)
+	// объявляем storage здесь, в пределах функции main
+	var storage repository.Storage
+
+	if cfg.Storage == "memory" {
+		storage = memory.NewStorage()
+	} else {
+		// например, ошибка или default
+		log.Info("unknown storage type", "type", cfg.Storage)
+		os.Exit(1)
+	}
+
+	server := api.New(cfg, log, storage)
 	server.Start()
 
 	log.Error("server stopeed")

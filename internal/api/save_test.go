@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/markvoronov/shortener/internal/config"
+	"github.com/markvoronov/shortener/internal/repository/memory"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log/slog"
@@ -45,8 +47,11 @@ func TestAPI_Save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			api_test := New(nil, tt.logger)
+			cfg := &config.Config{
+				BaseUrl:     "https://dzen.ru",
+				AliasLength: 6,
+			}
+			api_test := New(cfg, tt.logger, memory.NewStorage())
 			api_test.ConfigureRouterField()
 
 			req := httptest.NewRequest(tt.method, "/"+tt.path, strings.NewReader(tt.body))
