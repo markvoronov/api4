@@ -57,6 +57,13 @@ func (api *API) RootHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err != nil {
+		log.Info("Error while add url", slog.String("url", err.Error()))
+		w.Write([]byte("Error while add url"))
+		//render.JSON(w, r, resp.Error("url already exists"))
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Location", bodyStr)
 	w.WriteHeader(http.StatusCreated)

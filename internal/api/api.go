@@ -43,6 +43,7 @@ func (api *API) ConfigureRouterField() {
 	api.router.Get("/", api.IdPageHandle)
 	api.router.Get("/{id}", api.IdPageHandle)
 	api.router.Post("/shorten", api.ApiShortenHandle)
+	api.router.Get("/ping", api.PingHandle)
 
 	// Обработчик для несуществующих маршрутов
 	api.router.NotFound(func(w http.ResponseWriter, r *http.Request) {

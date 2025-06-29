@@ -11,15 +11,29 @@ import (
 type Config struct {
 	Env         string `toml:"env"`
 	HTTPServer  `toml:"http_server"`
-	BaseUrl     string `toml:"base_url"`
-	Storage     string `toml:"storage"`
-	AliasLength int    `toml:"aliasLength"`
+	BaseUrl     string   `toml:"base_url"`
+	Storage     string   `toml:"storage"`
+	AliasLength int      `toml:"alias_length"`
+	Database    Database `toml:"database"`
 }
 
 type HTTPServer struct {
 	Address     string        `toml:"address" env-default:"localhost:8083"`
 	Timeout     time.Duration `toml:"timeout" env-default:"4s"`
 	IdleTimeout time.Duration `toml:"idle_timeout" env-default:"60s"`
+}
+
+type Database struct {
+	Driver string `toml:"driver"` // postgres | memory
+	DSN    string `toml:"dsn"`    // строка подключения (только для postgres)
+
+	Pool *DBPool `toml:"pool,omitempty"` // указатель → nil, если секции [database.pool] нет
+}
+
+type DBPool struct {
+	MaxOpenConns int           `toml:"max_open_conns"`
+	MaxIdleConns int           `toml:"max_idle_conns"`
+	ConnLifetime time.Duration `toml:"conn_lifetime"`
 }
 
 var (

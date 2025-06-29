@@ -7,9 +7,11 @@ var (
 	ErrURLExists      = errors.New("url exists")
 	ErrAliasExists    = errors.New("alias exists")
 	ErrAliasNotExists = errors.New("alias not exists")
+	ErrNoConnectToDb  = errors.New("db is not connected")
 )
 
 type Storage interface {
 	Get(alias string) (string, error)
 	Add(url string, alias string) error
+	TestPing() error
 }

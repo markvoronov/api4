@@ -71,3 +71,7 @@ func (s *Storage) Add(url string, alias string) error {
 	return nil
 
 }
+
+func (s *Storage) TestPing() error {
+	return nil
+}

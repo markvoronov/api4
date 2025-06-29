@@ -8,6 +8,8 @@ import (
 	"github.com/markvoronov/shortener/internal/logger/slogpretty"
 	"github.com/markvoronov/shortener/internal/repository"
 	"github.com/markvoronov/shortener/internal/repository/memory"
+	"github.com/markvoronov/shortener/internal/repository/postgres"
+	"github.com/markvoronov/shortener/migrations"
 	"log/slog"
 	"os"
 )
@@ -28,18 +30,36 @@ func main() {
 	log.Info("Конфигурация сервера", slog.Any("config", cfg))
 	log.Debug("debug massages are enable")
 
-	// объявляем storage здесь, в пределах функции main
-	var storage repository.Storage
-
-	if cfg.Storage == "memory" {
-		storage = memory.NewStorage()
-	} else {
-		// например, ошибка или default
-		log.Info("unknown storage type", "type", cfg.Storage)
+	// 1️⃣ ➜ вызываем миграции
+	if err := migrations.RunMigrations(cfg, log); err != nil {
+		log.Error("migrations failed", slog.Any("error", err.Error()))
 		os.Exit(1)
 	}
 
-	server := api.New(cfg, log, storage)
+	log.Info("migrations applyied")
+
+	var (
+		repo repository.Storage
+		err  error
+	)
+	switch cfg.Database.Driver {
+	case "memory":
+		repo = memory.NewStorage() // map[string]URL
+	case "postgres":
+		repo, err = postgres.NewPostgresDB(cfg)
+		if err != nil {
+			log.Info("Can`t start postgres db", slog.Any("error", err.Error()))
+			os.Exit(1)
+		}
+		log.Info("postrgres db connected")
+	default:
+		log.Info("unknown database driver: %s", slog.String("Driver", cfg.Database.Driver))
+		os.Exit(1)
+	}
+
+	// объявляем storage здесь, в пределах функции main
+
+	server := api.New(cfg, log, repo)
 	server.Start()
 
 	log.Error("server stopeed")

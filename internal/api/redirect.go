@@ -35,12 +35,12 @@ func (api *API) IdPageHandle(w http.ResponseWriter, r *http.Request) {
 	baseUrl, err := api.storage.Get(idPage)
 	if errors.Is(err, repository.ErrAliasNotExists) {
 		log.Debug("not found alias in DB", slog.String("alias", idPage))
-		w.Write([]byte("not found alias %s in DB" + idPage))
+		w.Write([]byte("not found alias " + idPage + " in DB"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if err != nil {
-		log.Debug("error while getting url by alias: %w", err)
+		log.Debug("error while getting url by alias", slog.Any("error", err.Error()))
 		w.Write([]byte("something error"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -49,7 +49,7 @@ func (api *API) IdPageHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	log.Debug("redirect to", slog.String("originURL", baseUrl))
 	// redirect to found url
-	//http.Redirect(w, r, originUrl, http.StatusFound)
+	http.Redirect(w, r, baseUrl, http.StatusFound)
 
 }
 
