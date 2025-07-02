@@ -5,9 +5,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/markvoronov/shortener/internal/config"
+	authmw "github.com/markvoronov/shortener/internal/middleware"
 	mwLogger "github.com/markvoronov/shortener/internal/middleware/logger"
 	"github.com/markvoronov/shortener/internal/repository"
-
+	"github.com/markvoronov/shortener/session"
 	//"github.com/markvoronov/shortener/internal/handler/redirect"
 	//	"github.com/markvoronov/shortener/internal/handler/save"
 	"log/slog"
@@ -16,18 +17,20 @@ import (
 
 type API struct {
 	// Unexported field
-	config  *config.Config
-	logger  *slog.Logger
-	router  *chi.Mux
-	storage repository.Storage
+	config          *config.Config
+	logger          *slog.Logger
+	router          *chi.Mux
+	storage         repository.Storage
+	sessionProvider *session.SessionProvider // ← добавляем
 }
 
 func New(config *config.Config, logger *slog.Logger, storage repository.Storage) *API {
 	return &API{
-		config:  config,
-		logger:  logger,
-		router:  chi.NewRouter(),
-		storage: storage,
+		config:          config,
+		logger:          logger,
+		router:          chi.NewRouter(),
+		storage:         storage,
+		sessionProvider: &session.SessionProvider{Config: config}, // ← инициализируем
 	}
 }
 
@@ -42,7 +45,7 @@ func (api *API) ConfigureRouterField() {
 	api.router.Post("/", api.RootHandle)
 	api.router.Get("/", api.IdPageHandle)
 	api.router.Get("/{id}", api.IdPageHandle)
-	api.router.Post("/shorten", api.ApiShortenHandle)
+	api.router.With(authmw.AuthMiddleware(api.sessionProvider)).Post("/shorten", api.ApiShortenHandle)
 	api.router.Get("/ping", api.PingHandle)
 
 	// Обработчик для несуществующих маршрутов

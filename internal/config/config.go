@@ -15,6 +15,7 @@ type Config struct {
 	Storage     string   `toml:"storage"`
 	AliasLength int      `toml:"alias_length"`
 	Database    Database `toml:"database"`
+	SecretKey   string   `toml:"secret_key"`
 }
 
 type HTTPServer struct {

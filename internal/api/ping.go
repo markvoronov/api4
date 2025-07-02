@@ -1,7 +1,6 @@
 package api
 
 import (
-	//"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
 	"net/http"
 )
@@ -26,8 +25,3 @@ func (api *API) PingHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
-//
-//type URLGetter interface {
-//	GetURL(alias string) (string, error)
-//}

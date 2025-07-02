@@ -3,6 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/markvoronov/shortener/internal/api/random"
+	authmw "github.com/markvoronov/shortener/internal/middleware"
+	"github.com/markvoronov/shortener/internal/repository"
 	"io"
 	"log/slog"
 	"mime"
@@ -29,6 +32,12 @@ func (api *API) ApiShortenHandle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Method Not Allowed", http.StatusBadRequest)
 		log.Debug("Method Not Allowed", slog.String("got method", r.Method))
+		return
+	}
+
+	_, ok := r.Context().Value(authmw.UserIDKey).(int64)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -61,6 +70,22 @@ func (api *API) ApiShortenHandle(w http.ResponseWriter, r *http.Request) {
 	if fullUrl.Url == "" {
 		http.Error(w, "Field 'url' is required", http.StatusBadRequest)
 		log.Debug("Field 'url' is required")
+		return
+	}
+
+	alias := random.NewRandomString(api.config.AliasLength, nil)
+	err = api.storage.Add(bodyStr, alias)
+	if errors.Is(err, repository.ErrURLExists) {
+		log.Info("url already exists", slog.String("url", bodyStr))
+		w.Write([]byte("url already exists"))
+		//render.JSON(w, r, resp.Error("url already exists"))
+		return
+	}
+
+	if err != nil {
+		log.Info("Error while add url", slog.String("url", err.Error()))
+		w.Write([]byte("Error while add url"))
+		//render.JSON(w, r, resp.Error("url already exists"))
 		return
 	}
 	//fmt.Println(fullUrl.Url)
