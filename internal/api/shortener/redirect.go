@@ -37,7 +37,7 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("alias was getting", slog.String("idPage", idPage))
 
-	baseUrl, err := h.service.GetOriginalURL(ctx, idPage)
+	baseUrl, err := h.service.GetOriginalUrl(ctx, idPage)
 
 	//baseUrl, err := api.storage.Get(idPage)
 	if errors.Is(err, repository.ErrAliasNotExists) {
