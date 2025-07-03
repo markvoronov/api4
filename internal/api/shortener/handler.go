@@ -6,7 +6,7 @@ import (
 )
 
 type Service interface {
-	GetOriginalURL(ctx context.Context, alias string) (string, error)
+	GetOriginalUrl(ctx context.Context, alias string) (string, error)
 	SaveOriginalUrl(ctx context.Context, url string) (string, error)
 }
 

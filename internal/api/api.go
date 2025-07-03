@@ -25,6 +25,10 @@ func New(config *config.Config, logger *slog.Logger, router *APIRouter) *API {
 	}
 }
 
+func (a *APIRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.router.ServeHTTP(w, r)
+}
+
 // Start http server, configure loggers, database connection
 func (api *API) Start() error {
 
