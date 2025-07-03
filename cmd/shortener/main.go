@@ -2,13 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	_ "github.com/go-chi/chi/v5/middleware"
 	"github.com/markvoronov/shortener/internal/api"
+	"github.com/markvoronov/shortener/internal/api/health"
+	"github.com/markvoronov/shortener/internal/api/shortener"
 	"github.com/markvoronov/shortener/internal/config"
 	"github.com/markvoronov/shortener/internal/logger/slogpretty"
 	"github.com/markvoronov/shortener/internal/repository"
 	"github.com/markvoronov/shortener/internal/repository/memory"
 	"github.com/markvoronov/shortener/internal/repository/postgres"
+	"github.com/markvoronov/shortener/internal/service"
 	"github.com/markvoronov/shortener/migrations"
 	"log/slog"
 	"os"
@@ -39,7 +43,7 @@ func main() {
 	log.Info("migrations applyied")
 
 	var (
-		repo repository.Storage
+		repo repository.Repo
 		err  error
 	)
 	switch cfg.Database.Driver {
@@ -57,9 +61,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	// объявляем storage здесь, в пределах функции main
+	// сервис и HTTP-хендлер для health
+	pingSvc := service.NewHealthService(repo)
+	healthH := health.NewHandler(pingSvc, log)
 
-	server := api.New(cfg, log, repo)
+	shortenSvc := service.NewShortenerService(repo)
+	shortenH := shortener.NewHandler(shortenSvc, log)
+
+	apiRouter := api.NewAPIRouter(chi.NewRouter(), log, healthH, shortenH)
+
+	server := api.New(cfg, log, apiRouter)
 	server.Start()
 
 	log.Error("server stopeed")

@@ -2,15 +2,8 @@ package api
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/markvoronov/shortener/internal/config"
-	authmw "github.com/markvoronov/shortener/internal/middleware"
-	mwLogger "github.com/markvoronov/shortener/internal/middleware/logger"
-	"github.com/markvoronov/shortener/internal/repository"
 	"github.com/markvoronov/shortener/session"
-	//"github.com/markvoronov/shortener/internal/handler/redirect"
-	//	"github.com/markvoronov/shortener/internal/handler/save"
 	"log/slog"
 	"net/http"
 )
@@ -19,48 +12,24 @@ type API struct {
 	// Unexported field
 	config          *config.Config
 	logger          *slog.Logger
-	router          *chi.Mux
-	storage         repository.Storage
+	router          *APIRouter
 	sessionProvider *session.SessionProvider // ← добавляем
 }
 
-func New(config *config.Config, logger *slog.Logger, storage repository.Storage) *API {
+func New(config *config.Config, logger *slog.Logger, router *APIRouter) *API {
 	return &API{
 		config:          config,
 		logger:          logger,
-		router:          chi.NewRouter(),
-		storage:         storage,
+		router:          router,
 		sessionProvider: &session.SessionProvider{Config: config}, // ← инициализируем
 	}
-}
-
-func (api *API) ConfigureRouterField() {
-
-	api.router.Use(middleware.Recoverer)
-	api.router.Use(middleware.RequestID)
-	api.router.Use(middleware.RealIP)
-	api.router.Use(middleware.URLFormat)
-	api.router.Use(mwLogger.New(api.logger))
-
-	api.router.Post("/", api.RootHandle)
-	api.router.Get("/", api.IdPageHandle)
-	api.router.Get("/{id}", api.IdPageHandle)
-	api.router.With(authmw.AuthMiddleware(api.sessionProvider)).Post("/shorten", api.ApiShortenHandle)
-	api.router.Get("/ping", api.PingHandle)
-
-	// Обработчик для несуществующих маршрутов
-	api.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("400 — страница не найдена (Mark)"))
-	})
-
 }
 
 // Start http server, configure loggers, database connection
 func (api *API) Start() error {
 
 	api.logger.Debug("Starting configure Router field")
-	api.ConfigureRouterField()
+	api.router.ConfigureRouterField()
 
 	srv := &http.Server{
 		Addr:         api.config.Address,

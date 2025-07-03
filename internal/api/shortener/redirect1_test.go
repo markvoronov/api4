@@ -1,8 +1,9 @@
-package api
+package shortener
 
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/markvoronov/shortener/internal/api"
 	"github.com/markvoronov/shortener/internal/config"
 	"github.com/markvoronov/shortener/internal/repository/memory"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ func TestAPI_IdPageHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			cfg := &config.Config{BaseUrl: "https://dzen.ru"}
-			api_test := New(cfg, tt.logger, memory.NewStorage())
+			api_test := api.New(cfg, tt.logger, memory.NewStorage())
 			api_test.ConfigureRouterField()
 
 			req := httptest.NewRequest(tt.method, "/"+tt.path, nil)

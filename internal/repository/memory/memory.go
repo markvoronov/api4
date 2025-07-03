@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"github.com/markvoronov/shortener/internal/repository"
 	"sync"
@@ -18,7 +19,7 @@ func NewStorage() *Storage {
 	}
 }
 
-func (s *Storage) Get(alias string) (string, error) {
+func (s *Storage) Get(ctx context.Context, alias string) (string, error) {
 
 	if alias == "" {
 		return "", fmt.Errorf("alias empty")
@@ -37,7 +38,7 @@ func (s *Storage) Get(alias string) (string, error) {
 
 }
 
-func (s *Storage) Add(url string, alias string) error {
+func (s *Storage) Add(ctx context.Context, url string, alias string) error {
 
 	if url == "" {
 		return fmt.Errorf("url empty")
@@ -72,6 +73,6 @@ func (s *Storage) Add(url string, alias string) error {
 
 }
 
-func (s *Storage) TestPing() error {
+func (s *Storage) Ping(ctx context.Context) error {
 	return nil
 }

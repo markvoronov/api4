@@ -1,11 +1,12 @@
-package api
+package shortener
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/markvoronov/shortener/internal/api/random"
+	"github.com/markvoronov/shortener/internal/api"
 	authmw "github.com/markvoronov/shortener/internal/middleware"
 	"github.com/markvoronov/shortener/internal/repository"
+	"github.com/markvoronov/shortener/pkg/random"
 	"io"
 	"log/slog"
 	"mime"
@@ -20,7 +21,7 @@ type shortUrl struct {
 	Result string `json:"result"`
 }
 
-func (api *API) ApiShortenHandle(w http.ResponseWriter, r *http.Request) {
+func (api *api.API) ApiShortenHandle(w http.ResponseWriter, r *http.Request) {
 
 	var fullUrl fullUrl
 	var shortUrl shortUrl

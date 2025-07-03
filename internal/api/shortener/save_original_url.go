@@ -1,24 +1,32 @@
-package api
+package shortener
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"github.com/markvoronov/shortener/internal/api/random"
-	"github.com/markvoronov/shortener/internal/repository"
 	"io"
 	"log/slog"
 	"mime"
 	"net/http"
+	"time"
 )
 
-func (api *API) RootHandle(w http.ResponseWriter, r *http.Request) {
+//
+//// Интерфейс объявляем здесь, рядом с handler’ом, потому что именно он его вызывает.
+//type SaveService interface {
+//	Save(ctx context.Context, url string, alias string) error
+//}
+
+func (h *Handler) SaveOriginalUrl(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.api.save.RootHandle"
-	log := api.logger.With(slog.String("op", op))
+	log := h.logger.With(slog.String("op", op))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Method Not Allowed", http.StatusBadRequest)
-		log.Debug("Method Not Allowed", slog.String("Get method", r.Method))
+		h.logger.Debug("Method Not Allowed", slog.String("Get method", r.Method))
 		return
 	}
 
@@ -48,19 +56,11 @@ func (api *API) RootHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	alias := random.NewRandomString(api.config.AliasLength, nil)
-	err = api.storage.Add(bodyStr, alias)
-	if errors.Is(err, repository.ErrURLExists) {
-		log.Info("url already exists", slog.String("url", bodyStr))
-		w.Write([]byte("url already exists"))
-		//render.JSON(w, r, resp.Error("url already exists"))
-		return
-	}
+	alias, err := h.service.SaveOriginalUrl(ctx, bodyStr)
 
 	if err != nil {
-		log.Info("Error while add url", slog.String("url", err.Error()))
-		w.Write([]byte("Error while add url"))
-		//render.JSON(w, r, resp.Error("url already exists"))
+		log.Info("Error while save url", slog.String("url", err.Error()))
+		w.Write([]byte("Error while save url"))
 		return
 	}
 
@@ -68,11 +68,11 @@ func (api *API) RootHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", bodyStr)
 	w.WriteHeader(http.StatusCreated)
 	// Пишем тело и проверяем ошибку
-	ref := api.config.Address + "/" + alias
-	if _, err := w.Write([]byte(ref)); err != nil {
+	//	ref := api.config.Address + "/" + alias
+	if _, err := w.Write([]byte(alias)); err != nil {
 		//log.Printf("Failed to write response: %v", err)
 		return
 	}
-	log.Info("Записан адрес", slog.String("alias", alias), slog.String("ref", ref))
+	log.Info("Записан адрес", slog.String("alias", alias))
 
 }

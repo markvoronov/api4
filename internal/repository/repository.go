@@ -1,6 +1,9 @@
 package repository
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 var (
 	ErrURLNotFound    = errors.New("url not found")
@@ -10,8 +13,8 @@ var (
 	ErrNoConnectToDb  = errors.New("db is not connected")
 )
 
-type Storage interface {
-	Get(alias string) (string, error)
-	Add(url string, alias string) error
-	TestPing() error
+type Repo interface {
+	Get(ctx context.Context, alias string) (string, error)
+	Add(ctx context.Context, url string, alias string) error
+	Ping(ctx context.Context) error
 }

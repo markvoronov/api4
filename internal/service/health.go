@@ -4,7 +4,7 @@ import "context"
 
 // Pinger — минимальный интерфейс для нашего хранилища
 type Pinger interface {
-	TestPing(ctx context.Context) error
+	Ping(ctx context.Context) error
 }
 
 // HealthService инкапсулирует логику «проверить доступность»
@@ -18,5 +18,5 @@ func NewHealthService(repo Pinger) *HealthService {
 
 // Ping проверяет, доступно ли хранилище
 func (s *HealthService) Ping(ctx context.Context) error {
-	return s.repo.TestPing(ctx)
+	return s.repo.Ping(ctx)
 }
