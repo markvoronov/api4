@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"github.com/markvoronov/shortener/internal/model"
-	"github.com/markvoronov/shortener/internal/repository"
 	"log/slog"
 )
 
@@ -11,21 +10,21 @@ import (
 type ShortenerService interface {
 	// SaveOriginalUrl Save генерирует alias для оригинального URL
 	// (или возвращает существующий, если уже был сохранён).
-	SaveOriginalUrl(ctx context.Context, originalURL string) (alias string, err error)
+	SaveOriginalUrl(ctx context.Context, link model.ShortLink) error
 
 	// GetOriginalUrl Get возвращает оригинальный URL по alias
 	// (или ошибку, если алиас не найден).
-	GetOriginalUrl(ctx context.Context, alias string) (originalURL string, err error)
+	GetOriginalUrl(ctx context.Context, alias string) (model.ShortLink, error)
 
 	GetAllUrls(ctx context.Context) ([]model.ShortLink, error)
 }
 
 type shortenerSvc struct {
-	repo   repository.Storage
+	repo   ShortenerService
 	logger *slog.Logger
 }
 
-func NewShortenerService(repo repository.Storage, logger *slog.Logger) ShortenerService {
+func NewShortenerService(repo ShortenerService, logger *slog.Logger) *shortenerSvc {
 	return &shortenerSvc{
 		repo:   repo,
 		logger: logger,

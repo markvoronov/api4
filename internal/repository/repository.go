@@ -1,9 +1,7 @@
 package repository
 
 import (
-	"context"
 	"errors"
-	"github.com/markvoronov/shortener/internal/model"
 )
 
 var (
@@ -14,9 +12,10 @@ var (
 	ErrNoConnectToDb  = errors.New("db is not connected")
 )
 
-type Storage interface {
-	GetOriginalUrl(ctx context.Context, alias string) (string, error)
-	SaveOriginalUrl(ctx context.Context, model model.ShortLink) error
-	Ping(ctx context.Context) error
-	GetAllUrls(ctx context.Context) ([]model.ShortLink, error)
-}
+//
+//type Storage interface {
+//	GetOriginalUrl(ctx context.Context, alias string) (string, error)
+//	SaveOriginalUrl(ctx context.Context, model model.ShortLink) error
+//	Ping(ctx context.Context) error
+//	GetAllUrls(ctx context.Context) ([]model.ShortLink, error)
+//}

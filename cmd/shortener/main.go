@@ -53,7 +53,7 @@ func main() {
 	//log.Error("server stoped")
 }
 
-func buildServer(cfg *config.Config, log *slog.Logger, repo repository.Storage) error {
+func buildServer(cfg *config.Config, log *slog.Logger, repo service.ShortenerService) error {
 
 	// Сборка service → handler → router
 	pingSvc := service.NewHealthService(repo)
