@@ -16,7 +16,7 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.api.redirect.Redirect"
 	log := h.logger.With(slog.String("op", op))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 
 	if r.Method != http.MethodGet {

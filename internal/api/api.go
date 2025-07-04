@@ -32,8 +32,8 @@ func (a *APIRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Start http server, configure loggers, database connection
 func (api *API) Start() error {
 
-	api.logger.Debug("Starting configure Router field")
-	api.router.ConfigureRouterField()
+	//api.logger.Debug("Starting configure Router field")
+	//api.router.ConfigureRouterField()
 
 	srv := &http.Server{
 		Addr:         api.config.Address,

@@ -45,6 +45,8 @@ func (a APIRouter) ConfigureRouterField() {
 	router.Get("/{id}", a.shortenH.Redirect)
 	//	router.With(authmw.AuthMiddleware(api.sessionProvider)).Post("/shorten", shortener.ApiShortenHandle)
 	router.Get("/ping", a.healthH.Ping)
+	router.Get("/urls", a.shortenH.GetAllUrls)
+	router.Post("/api/shorten", a.shortenH.GetJSONShortUrl)
 
 	// Обработчик для несуществующих маршрутов
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) {

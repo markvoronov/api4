@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"github.com/markvoronov/shortener/internal/model"
 	"github.com/markvoronov/shortener/internal/repository"
 	"sync"
 )
@@ -19,7 +20,7 @@ func NewStorage() *Storage {
 	}
 }
 
-func (s *Storage) Get(ctx context.Context, alias string) (string, error) {
+func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (string, error) {
 
 	if alias == "" {
 		return "", fmt.Errorf("alias empty")
@@ -38,19 +39,19 @@ func (s *Storage) Get(ctx context.Context, alias string) (string, error) {
 
 }
 
-func (s *Storage) Add(ctx context.Context, url string, alias string) error {
+func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) error {
 
-	if url == "" {
+	if link.Original == "" {
 		return fmt.Errorf("url empty")
 	}
-	if alias == "" {
+	if link.Alias == "" {
 		return fmt.Errorf("alias empty")
 	}
 
 	// Проверим, есть ли такой алиас
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if m, ok := s.Store[alias]; ok {
+	if m, ok := s.Store[link.Alias]; ok {
 
 		return fmt.Errorf("alias already exists for %s: %w", m, repository.ErrAliasExists)
 	}
@@ -58,16 +59,16 @@ func (s *Storage) Add(ctx context.Context, url string, alias string) error {
 	// Проверим, есть ли такой url
 	var findUrl bool
 	for _, val := range s.Store {
-		if val == url {
+		if val == link.Original {
 			findUrl = true
 		}
 	}
 	if findUrl {
 
-		return fmt.Errorf("url already exists %s: %w", url, repository.ErrURLExists)
+		return fmt.Errorf("url already exists %s: %w", link.Original, repository.ErrURLExists)
 	}
 
-	s.Store[alias] = url
+	s.Store[link.Alias] = link.Original
 
 	return nil
 
@@ -75,4 +76,19 @@ func (s *Storage) Add(ctx context.Context, url string, alias string) error {
 
 func (s *Storage) Ping(ctx context.Context) error {
 	return nil
+}
+
+func (s *Storage) GetAllUrls(ctx context.Context) ([]model.ShortLink, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	var urls []model.ShortLink
+	for i, v := range s.Store {
+		var link model.ShortLink
+		link.Original = v
+		link.Alias = i
+		urls = append(urls, link)
+	}
+
+	return urls, nil
 }

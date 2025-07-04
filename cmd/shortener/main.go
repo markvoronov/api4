@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	_ "github.com/go-chi/chi/v5/middleware"
 	"github.com/markvoronov/shortener/internal/api"
 	"github.com/markvoronov/shortener/internal/api/health"
 	"github.com/markvoronov/shortener/internal/api/shortener"
@@ -27,53 +27,75 @@ const (
 func main() {
 
 	cfg := config.MustLoad()
-	fmt.Println(cfg)
 
 	log := setupLogger(cfg.Env)
 	log.Info("starting url-shortener", slog.String("env", cfg.Env))
-	log.Info("Конфигурация сервера", slog.Any("config", cfg))
+	// log.Debug("Конфигурация сервера", slog.Any("config", cfg))
 	log.Debug("debug massages are enable")
 
-	// 1️⃣ ➜ вызываем миграции
-	if err := migrations.RunMigrations(cfg, log); err != nil {
-		log.Error("migrations failed", slog.Any("error", err.Error()))
+	storage := initRepository(cfg, log)
+	runMigrations(cfg, log)
+
+	ulrs, err2 := storage.GetAllUrls(context.Background())
+	if err2 != nil {
+		log.Error(err2.Error())
+		return
+	}
+	fmt.Println(ulrs)
+	fmt.Println("до старта сервера")
+
+	err := buildServer(cfg, log, storage)
+	if err != nil {
+		log.Error("Can`t start server", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
-	log.Info("migrations applyied")
+	//log.Error("server stoped")
+}
 
-	var (
-		repo repository.Repo
-		err  error
-	)
-	switch cfg.Database.Driver {
-	case "memory":
-		repo = memory.NewStorage() // map[string]URL
-	case "postgres":
-		repo, err = postgres.NewPostgresDB(cfg)
-		if err != nil {
-			log.Info("Can`t start postgres db", slog.Any("error", err.Error()))
-			os.Exit(1)
-		}
-		log.Info("postrgres db connected")
-	default:
-		log.Info("unknown database driver: %s", slog.String("Driver", cfg.Database.Driver))
-		os.Exit(1)
-	}
+func buildServer(cfg *config.Config, log *slog.Logger, repo repository.Storage) error {
 
-	// сервис и HTTP-хендлер для health
+	// Сборка service → handler → router
 	pingSvc := service.NewHealthService(repo)
 	healthH := health.NewHandler(pingSvc, log)
-
-	shortenSvc := service.NewShortenerService(repo)
-	shortenH := shortener.NewHandler(shortenSvc, log)
-
+	shortSvc := service.NewShortenerService(repo, log)
+	shortenH := shortener.NewHandler(shortSvc, log)
 	apiRouter := api.NewAPIRouter(chi.NewRouter(), log, healthH, shortenH)
+	apiRouter.ConfigureRouterField()
 
-	server := api.New(cfg, log, apiRouter)
-	server.Start()
+	serverAPI := api.New(cfg, log, apiRouter)
+	err := serverAPI.Start()
+	return err
 
-	log.Error("server stopeed")
+}
+
+func initRepository(cfg *config.Config, log *slog.Logger) repository.Storage {
+	switch cfg.Database.Driver {
+	case "memory":
+		return memory.NewStorage()
+	case "postgres":
+		repo, err := postgres.NewPostgresDB(cfg)
+		if err != nil {
+			log.Error("db connect failed", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		return repo
+	default:
+		log.Error("unknown driver", slog.String("driver", cfg.Database.Driver))
+		os.Exit(1)
+		return nil
+	}
+}
+
+func runMigrations(cfg *config.Config, log *slog.Logger) {
+
+	switch cfg.Database.Driver {
+	case "postgres":
+		if err := migrations.RunMigrations(cfg, log); err != nil {
+			log.Error("migrations failed", slog.String("err", err.Error()))
+			os.Exit(1)
+		}
+	}
 }
 
 func setupLogger(env string) *slog.Logger {

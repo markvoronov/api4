@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/markvoronov/shortener/internal/config"
+	"github.com/markvoronov/shortener/internal/model"
 	"github.com/markvoronov/shortener/internal/repository"
 	"time"
 )
@@ -65,7 +66,7 @@ func (s *Storage) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) Get(ctx context.Context, alias string) (string, error) {
+func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (string, error) {
 	const op = "repository.postgres.Get"
 	var destUrl string
 
@@ -81,7 +82,7 @@ func (s *Storage) Get(ctx context.Context, alias string) (string, error) {
 	return destUrl, nil
 }
 
-func (s *Storage) Add(ctx context.Context, urlToSave string, alias string) error {
+func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) error {
 
 	const op = "internal.repository.postgres.Add"
 
@@ -89,8 +90,8 @@ func (s *Storage) Add(ctx context.Context, urlToSave string, alias string) error
 	// драйвер сам кэширует запросы.
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO url5 (url, alias) VALUES ($1, $2)`,
-		urlToSave,
-		alias,
+		link.Original,
+		link.Alias,
 	)
 	if err != nil {
 		// 23505 — стандартный SQL-код PostgreSQL для unique_violation
@@ -102,4 +103,32 @@ func (s *Storage) Add(ctx context.Context, urlToSave string, alias string) error
 
 	return nil
 
+}
+
+func (s *Storage) GetAllUrls(ctx context.Context) ([]model.ShortLink, error) {
+
+	const op = "repository.postgres.Get"
+
+	// Подготовим запрос к нужным колонкам
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, url, alias, dateAdd
+         FROM url5`)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var urls []model.ShortLink
+	for rows.Next() {
+		var link model.ShortLink
+		if err := rows.Scan(&link.ID, &link.Original, &link.Alias, &link.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		urls = append(urls, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return urls, nil
 }
