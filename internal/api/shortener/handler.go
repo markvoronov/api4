@@ -8,7 +8,7 @@ import (
 
 type Service interface {
 	GetOriginalUrl(ctx context.Context, alias string) (string, error)
-	SaveOriginalUrl(ctx context.Context, url string) (string, error)
+	SaveOriginalUrl(ctx context.Context, url string) (model.ShortLink, error)
 	GetAllUrls(ctx context.Context) ([]model.ShortLink, error)
 }
 

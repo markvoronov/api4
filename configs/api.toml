@@ -9,7 +9,7 @@ timeout = "4s"
 idle_timeout = "60s"
 [database]
 driver       = "postgres"       # postgres | memory
-dsn          = "postgres://postgres:mysecretpassword@localhost:5432/url4?sslmode=disable"
+dsn          = "postgres://postgres:mysecretpassword@localhost:5432/url_shortener?sslmode=disable"
     [database.pool]               # сугубо для Postgres, но не мешает Memory-режиму
     max_open_conns = 10
     max_idle_conns = 5

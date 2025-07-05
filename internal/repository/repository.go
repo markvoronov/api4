@@ -11,11 +11,3 @@ var (
 	ErrAliasNotExists = errors.New("alias not exists")
 	ErrNoConnectToDb  = errors.New("db is not connected")
 )
-
-//
-//type Storage interface {
-//	GetOriginalUrl(ctx context.Context, alias string) (string, error)
-//	SaveOriginalUrl(ctx context.Context, model model.ShortLink) error
-//	Ping(ctx context.Context) error
-//	GetAllUrls(ctx context.Context) ([]model.ShortLink, error)
-//}

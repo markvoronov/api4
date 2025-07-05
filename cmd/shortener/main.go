@@ -9,7 +9,6 @@ import (
 	"github.com/markvoronov/shortener/internal/api/shortener"
 	"github.com/markvoronov/shortener/internal/config"
 	"github.com/markvoronov/shortener/internal/logger/slogpretty"
-	"github.com/markvoronov/shortener/internal/repository"
 	"github.com/markvoronov/shortener/internal/repository/memory"
 	"github.com/markvoronov/shortener/internal/repository/postgres"
 	"github.com/markvoronov/shortener/internal/service"
@@ -58,7 +57,7 @@ func buildServer(cfg *config.Config, log *slog.Logger, repo service.ShortenerSer
 	// Сборка service → handler → router
 	pingSvc := service.NewHealthService(repo)
 	healthH := health.NewHandler(pingSvc, log)
-	shortSvc := service.NewShortenerService(repo, log)
+	shortSvc := service.NewShortenerService(repo, log, cfg)
 	shortenH := shortener.NewHandler(shortSvc, log)
 	apiRouter := api.NewAPIRouter(chi.NewRouter(), log, healthH, shortenH)
 	apiRouter.ConfigureRouterField()
@@ -69,7 +68,7 @@ func buildServer(cfg *config.Config, log *slog.Logger, repo service.ShortenerSer
 
 }
 
-func initRepository(cfg *config.Config, log *slog.Logger) repository.Storage {
+func initRepository(cfg *config.Config, log *slog.Logger) service.ShortenerService {
 	switch cfg.Database.Driver {
 	case "memory":
 		return memory.NewStorage()

@@ -56,7 +56,7 @@ func (h *Handler) SaveOriginalUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	alias, err := h.service.SaveOriginalUrl(ctx, bodyStr)
+	link, err := h.service.SaveOriginalUrl(ctx, bodyStr)
 
 	if err != nil {
 		log.Info("Error while save url", slog.String("url", err.Error()))
@@ -69,10 +69,10 @@ func (h *Handler) SaveOriginalUrl(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	// Пишем тело и проверяем ошибку
 	//	ref := api.config.Address + "/" + alias
-	if _, err := w.Write([]byte(alias)); err != nil {
+	if _, err := w.Write([]byte(link.Alias)); err != nil {
 		//log.Printf("Failed to write response: %v", err)
 		return
 	}
-	log.Info("Записан адрес", slog.String("alias", alias))
+	log.Info("Записан адрес", slog.String("alias", link.Alias))
 
 }

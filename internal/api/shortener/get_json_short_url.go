@@ -34,7 +34,7 @@ func (h *Handler) GetJSONShortUrl(writer http.ResponseWriter, request *http.Requ
 
 	originalUrl := urlProcessing.URL
 	log.Debug("got url", slog.String("url", originalUrl))
-	alias, err := h.service.SaveOriginalUrl(ctx, originalUrl)
+	link, err := h.service.SaveOriginalUrl(ctx, originalUrl)
 
 	if err != nil {
 		log.Info("Error while save url", slog.String("url", err.Error()))
@@ -49,7 +49,7 @@ func (h *Handler) GetJSONShortUrl(writer http.ResponseWriter, request *http.Requ
 	//	ref := api.config.Address + "/" + alias
 
 	rezult := model.UrlProcessingA{
-		URL: alias,
+		URL: link.Alias,
 	}
 
 	err = json.NewEncoder(writer).Encode(rezult)
@@ -59,6 +59,6 @@ func (h *Handler) GetJSONShortUrl(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	log.Debug("Записан адрес", slog.String("alias", alias))
+	log.Debug("Записан адрес", slog.String("alias", link.Alias))
 
 }

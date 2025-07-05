@@ -10,17 +10,9 @@ import (
 	"github.com/markvoronov/shortener/internal/config"
 	"github.com/markvoronov/shortener/internal/model"
 	"github.com/markvoronov/shortener/internal/repository"
+	"github.com/markvoronov/shortener/internal/service"
 	"time"
 )
-
-//type Config struct {
-//	Host     string
-//	Port     string
-//	Username string
-//	Password string
-//	DBName   string
-//	SSLMode  string
-//}
 
 type Storage struct {
 	db *sql.DB
@@ -44,9 +36,9 @@ func NewPostgresDB(cfg *config.Config) (*Storage, error) {
 
 	s := &Storage{db: db}
 
-	err = s.Ping(context.Background())
-	if err != nil {
-		return nil, err
+	if err := s.Ping(context.Background()); err != nil {
+		db.Close()      // НЕ забываем закрыть открытое соединение
+		return nil, err // и возвращаем ошибку дальше
 	}
 
 	return s, nil
@@ -56,7 +48,7 @@ func NewPostgresDB(cfg *config.Config) (*Storage, error) {
 func (s *Storage) Ping(ctx context.Context) error {
 
 	// Создаем контекст с таймаутом
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
 	// Используем PingContext вместо Ping
@@ -66,53 +58,60 @@ func (s *Storage) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (string, error) {
-	const op = "repository.postgres.Get"
-	var destUrl string
+func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (model.ShortLink, error) {
+	const op = "repository.postgres.GetOriginalUrl"
+	var link model.ShortLink
 
-	err := s.db.QueryRowContext(ctx, "SELECT url FROM url5 WHERE alias = $1", alias).Scan(&destUrl)
+	err := s.db.QueryRowContext(ctx, "SELECT id, url, alias, created_at FROM urls WHERE alias = $1", alias).
+		Scan(&link.ID, &link.Original, &link.Alias, &link.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("%s: %w", op, repository.ErrAliasNotExists)
+			return link, fmt.Errorf("%s: %w", op, repository.ErrAliasNotExists)
 		} else {
-			return "", fmt.Errorf("%s: %w", op, err)
+			return link, fmt.Errorf("%s: %w", op, err)
 		}
 	}
 
-	return destUrl, nil
+	return link, nil
 }
 
-func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) error {
+func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) (model.ShortLink, error) {
 
-	const op = "internal.repository.postgres.Add"
+	const op = "internal.repository.postgres.SaveOriginalUrl"
 
-	// В PostgreSQL можно сразу вызвать Exec без Prepare —
-	// драйвер сам кэширует запросы.
-	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO url5 (url, alias) VALUES ($1, $2)`,
-		link.Original,
-		link.Alias,
-	)
-	if err != nil {
-		// 23505 — стандартный SQL-код PostgreSQL для unique_violation
-		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
-			return fmt.Errorf("%s: %w", op, repository.ErrURLExists)
+	// Выполняем INSERT и сразу возвращаем id и created_at
+	query := `
+        INSERT INTO urls (url, alias)
+        VALUES ($1, $2)
+        RETURNING id, created_at
+        `
+	row := s.db.QueryRowContext(ctx, query, link.Original, link.Alias)
+
+	if err := row.Scan(&link.ID, &link.CreatedAt); err != nil {
+		// Обрабатываем уникальные нарушения как раньше
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case "urls_alias_key":
+				return link, fmt.Errorf("%s: %w", op, repository.ErrAliasExists)
+			case "urls_url_key":
+				return link, fmt.Errorf("%s: %w", op, repository.ErrURLExists)
+			}
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return link, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
-
+	return link, nil
 }
 
 func (s *Storage) GetAllUrls(ctx context.Context) ([]model.ShortLink, error) {
 
-	const op = "repository.postgres.Get"
+	const op = "repository.postgres.GetAllUrls"
 
 	// Подготовим запрос к нужным колонкам
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, url, alias, dateAdd
-         FROM url5`)
+		`SELECT id, url, alias, created_at
+         FROM urls`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -132,3 +131,5 @@ func (s *Storage) GetAllUrls(ctx context.Context) ([]model.ShortLink, error) {
 
 	return urls, nil
 }
+
+var _ service.ShortenerService = (*Storage)(nil)

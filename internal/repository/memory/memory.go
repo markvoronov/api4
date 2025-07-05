@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/markvoronov/shortener/internal/model"
 	"github.com/markvoronov/shortener/internal/repository"
+	"github.com/markvoronov/shortener/internal/service"
 	"sync"
 )
 
@@ -20,10 +21,10 @@ func NewStorage() *Storage {
 	}
 }
 
-func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (string, error) {
+func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (model.ShortLink, error) {
 
 	if alias == "" {
-		return "", fmt.Errorf("alias empty")
+		return model.ShortLink{}, fmt.Errorf("alias empty")
 	}
 
 	// Проверим, есть ли такой алиас
@@ -31,21 +32,22 @@ func (s *Storage) GetOriginalUrl(ctx context.Context, alias string) (string, err
 	defer s.mtx.Unlock()
 	m, ok := s.Store[alias]
 
+	link := model.ShortLink{Original: m}
 	if !ok {
-		return "", fmt.Errorf("Can`t find alias %s in DB: %w", m, repository.ErrAliasNotExists)
+		return link, fmt.Errorf("Can`t find alias %s in DB: %w", m, repository.ErrAliasNotExists)
 	}
 
-	return m, nil
+	return link, nil
 
 }
 
-func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) error {
+func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) (model.ShortLink, error) {
 
 	if link.Original == "" {
-		return fmt.Errorf("url empty")
+		return link, fmt.Errorf("url empty")
 	}
 	if link.Alias == "" {
-		return fmt.Errorf("alias empty")
+		return link, fmt.Errorf("alias empty")
 	}
 
 	// Проверим, есть ли такой алиас
@@ -53,7 +55,7 @@ func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) err
 	defer s.mtx.Unlock()
 	if m, ok := s.Store[link.Alias]; ok {
 
-		return fmt.Errorf("alias already exists for %s: %w", m, repository.ErrAliasExists)
+		return link, fmt.Errorf("alias already exists for %s: %w", m, repository.ErrAliasExists)
 	}
 
 	// Проверим, есть ли такой url
@@ -65,12 +67,12 @@ func (s *Storage) SaveOriginalUrl(ctx context.Context, link model.ShortLink) err
 	}
 	if findUrl {
 
-		return fmt.Errorf("url already exists %s: %w", link.Original, repository.ErrURLExists)
+		return link, fmt.Errorf("url already exists %s: %w", link.Original, repository.ErrURLExists)
 	}
 
 	s.Store[link.Alias] = link.Original
 
-	return nil
+	return link, nil
 
 }
 
@@ -92,3 +94,5 @@ func (s *Storage) GetAllUrls(ctx context.Context) ([]model.ShortLink, error) {
 
 	return urls, nil
 }
+
+var _ service.ShortenerService = (*Storage)(nil)
